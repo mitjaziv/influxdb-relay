@@ -1,0 +1,37 @@
+---
+version: '3.7'
+
+services:
+  influx-1:
+    image: bitnami/influxdb:2.0.6-debian-10-r19
+    container_name: influx-1
+    environment:
+      - INFLUXDB_ADMIN_ORG=my-org
+      - INFLUXDB_ADMIN_BUCKET=my-bucket
+      - INFLUXDB_ADMIN_USER_TOKEN=my-token
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_USER_PASSWORD=password
+      - INFLUXDB_HTTP_FLUX_ENABLED=true
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb-1-data:/bitnami/influxdb
+
+  influx-2:
+    image: bitnami/influxdb:2.0.6-debian-10-r19
+    container_name: influx-2
+    environment:
+      - INFLUXDB_ADMIN_ORG=my-org
+      - INFLUXDB_ADMIN_BUCKET=my-bucket
+      - INFLUXDB_ADMIN_USER_TOKEN=my-token
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_USER_PASSWORD=password
+      - INFLUXDB_HTTP_FLUX_ENABLED=true
+    ports:
+      - 7086:8086
+    volumes:
+      - influxdb-2-data:/bitnami/influxdb
+
+volumes:
+  influxdb-1-data:
+  influxdb-2-data:

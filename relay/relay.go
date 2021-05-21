@@ -25,17 +25,6 @@ func New(config Config) (*Service, error) {
 		s.relays[h.Name()] = h
 	}
 
-	for _, cfg := range config.UDPRelays {
-		u, err := NewUDP(cfg)
-		if err != nil {
-			return nil, err
-		}
-		if s.relays[u.Name()] != nil {
-			return nil, fmt.Errorf("duplicate relay: %q", u.Name())
-		}
-		s.relays[u.Name()] = u
-	}
-
 	return s, nil
 }
 
