@@ -15,8 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/influxdata/influxdb1-client/models"
 )
 
 // HTTP is a relay for HTTP influxdb writes
@@ -111,15 +109,13 @@ func (h *HTTP) Stop() error {
 }
 
 func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-
 	if r.URL.Path == "/ping" && (r.Method == "GET" || r.Method == "HEAD") {
 		w.Header().Add("X-InfluxDB-Version", "relay")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	if r.URL.Path != "/write" {
+	if r.URL.Path != "/api/v2/write" {
 		jsonError(w, http.StatusNotFound, "invalid write endpoint")
 		return
 	}
@@ -137,7 +133,7 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 
 	// fail early if we're missing the database
-	if queryParams.Get("db") == "" {
+	if queryParams.Get("org") == "" || queryParams.Get("bucket") == "" {
 		jsonError(w, http.StatusBadRequest, "missing parameter: db")
 		return
 	}
@@ -165,37 +161,10 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	precision := queryParams.Get("precision")
-	points, err := models.ParsePointsWithPrecision(bodyBuf.Bytes(), start, precision)
-	if err != nil {
-		putBuf(bodyBuf)
-		jsonError(w, http.StatusBadRequest, "unable to parse points")
-		return
-	}
-
-	outBuf := getBuf()
-	for _, p := range points {
-		if _, err = outBuf.WriteString(p.PrecisionString(precision)); err != nil {
-			break
-		}
-		if err = outBuf.WriteByte('\n'); err != nil {
-			break
-		}
-	}
-
-	// done with the input points
-	putBuf(bodyBuf)
-
-	if err != nil {
-		putBuf(outBuf)
-		jsonError(w, http.StatusInternalServerError, "problem writing points")
-		return
-	}
-
 	// normalize query string
 	query := queryParams.Encode()
 
-	outBytes := outBuf.Bytes()
+	outBytes := bodyBuf.Bytes()
 
 	// check for authorization performed via the header
 	authHeader := r.Header.Get("Authorization")
@@ -224,7 +193,7 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		wg.Wait()
 		close(responses)
-		putBuf(outBuf)
+		putBuf(bodyBuf)
 	}()
 
 	var errResponse *responseData

@@ -1,8 +1,11 @@
-# InfluxDB Relay
+# InfluxDB v2.x Relay
 
 This project adds a basic high availability layer to InfluxDB. With the right architecture and disaster recovery processes, this achieves a highly available setup.
 
 *NOTE:* `influxdb-relay` must be built with Go 1.5+
+
+Project is cloned forked from unmaintained [influxdb-relay](https://github.com/influxdata/influxdb-relay) with added changes
+to support InfluxDB v2.
 
 ## Usage
 
@@ -39,28 +42,6 @@ output = [
     # skip-tls-verification: skip verification for HTTPS location. WARNING: it's insecure. Don't use in production.
     { name="local1", location="http://127.0.0.1:8086/write", timeout="10s" },
     { name="local2", location="http://127.0.0.1:7086/write", timeout="10s" },
-]
-
-[[udp]]
-# Name of the UDP server, used for display purposes only.
-name = "example-udp"
-
-# UDP address to bind to.
-bind-addr = "127.0.0.1:9096"
-
-# Socket buffer size for incoming connections.
-read-buffer = 0 # default
-
-# Precision to use for timestamps
-precision = "n" # Can be n, u, ms, s, m, h
-
-# Array of InfluxDB instances to use as backends for Relay.
-output = [
-    # name: name of the backend, used for display purposes only.
-    # location: host and port of backend.
-    # mtu: maximum output payload size
-    { name="local1", location="127.0.0.1:8089", mtu=512 },
-    { name="local2", location="127.0.0.1:7089", mtu=1024 },
 ]
 ```
 
@@ -104,9 +85,14 @@ The setup should look like this:
 
 
 
-The relay will listen for HTTP or UDP writes and write the data to each InfluxDB server via the HTTP write or UDP endpoint, as appropriate. If the write is sent via HTTP, the relay will return a success response as soon as one of the InfluxDB servers returns a success. If any InfluxDB server returns a 4xx response, that will be returned to the client immediately. If all servers return a 5xx, a 5xx will be returned to the client. If some but not all servers return a 5xx that will not be returned to the client. You should monitor each instance's logs for 5xx errors.
+The relay will listen for HTTP writes and write the data to each InfluxDB server via the HTTP write endpoint, as appropriate.
+If the write is sent via HTTP, the relay will return a success response as soon as one of the InfluxDB servers returns a success.
+If any InfluxDB server returns a 4xx response, that will be returned to the client immediately.
+If all servers return a 5xx, a 5xx will be returned to the client. If some but not all servers return a 5xx that will 
+not be returned to the client. You should monitor each instance's logs for 5xx errors.
 
-With this setup a failure of one Relay or one InfluxDB can be sustained while still taking writes and serving queries. However, the recovery process might require operator intervention.
+With this setup a failure of one Relay or one InfluxDB can be sustained while still taking writes and serving queries. 
+However, the recovery process might require operator intervention.
 
 ## Buffering
 
